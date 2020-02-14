@@ -1,0 +1,61 @@
+################# inside chroot ###########################
+apt-get update
+apt-get remove --purge triggerhappy logrotate dphys-swapfile -y
+
+# update /boot/cmdline, append "fastboot noswap ro" at end (no quotes)
+
+LC_ALL=C LANGUAGE=C LANG=C apt-get autoremove --purge -y
+LC_ALL=C LANGUAGE=C LANG=C apt-get install -y busybox-syslogd
+LC_ALL=C LANGUAGE=C LANG=C apt-get remove --purge rsyslog -y
+
+# delete soft-link
+rm /var/spool
+# create the mount point for tmpfs
+mkdir /var/spool
+
+# add ,ro to /boot and / in /etc/fstab
+cat /etc/fstab
+
+proc            /proc           proc    defaults          0       0
+PARTUUID=266982c5-01  /boot           vfat    defaults,ro          0       2
+PARTUUID=266982c5-02  /               ext4    defaults,ro,noatime  0       1
+
+tmpfs        /tmp            tmpfs   nosuid,nodev,noatime  0       0
+tmpfs        /var/log        tmpfs   nosuid,nodev          0       0
+tmpfs        /var/spool      tmpfs   nosuid,nodev          0       0
+tmpfs        /var/tmp        tmpfs   nosuid,nodev          0       0
+tmpfs        /home/pi        tmpfs   nosuid,nodev          0       0
+
+
+
+rm -rf /var/lib/dhcp /var/lib/dhcpcd5 /var/spool /etc/resolv.conf
+ln -s /tmp /var/lib/dhcp
+ln -s /tmp /var/lib/dhcpcd5
+ln -s /tmp /var/spool
+touch /tmp/dhcpcd.resolv.conf
+ln -s /tmp/dhcpcd.resolv.conf /etc/resolv.conf
+
+rm /var/lib/systemd/random-seed # says no such file?
+ln -s /tmp/random-seed /var/lib/systemd/random-seed
+
+# edit /lib/systemd/system/systemd-random-seed.service
+# add, ExecStartPre=/bin/echo "" >/tmp/random-seed under [Service]
+cat /lib/systemd/system/systemd-random-seed.service
+[Unit]
+Description=Load/Save Random Seed
+Documentation=man:systemd-random-seed.service(8) man:random(4)
+DefaultDependencies=no
+RequiresMountsFor=/var/lib/systemd/random-seed
+Conflicts=shutdown.target
+After=systemd-remount-fs.service
+Before=sysinit.target shutdown.target
+ConditionVirtualization=!container
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/bin/echo "" >/tmp/random-seed
+ExecStart=/lib/systemd/systemd-random-seed load
+ExecStop=/lib/systemd/systemd-random-seed save
+TimeoutSec=30s
+

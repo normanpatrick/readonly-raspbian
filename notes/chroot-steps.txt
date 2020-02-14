@@ -1,0 +1,51 @@
+################### find starting sector/offset ##############################
+fdisk -lu 2020-02-05-raspbian-buster-lite.img
+Disk 2020-02-05-raspbian-buster-lite.img: 1.7 GiB, 1849688064 bytes, 3612672 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x56cd6262
+
+Device                               Boot  Start     End Sectors  Size Id Type
+2020-02-05-raspbian-buster-lite.img1        8192  532479  524288  256M  c W95 FAT32 (LBA)
+2020-02-05-raspbian-buster-lite.img2      532480 3612671 3080192  1.5G 83 Linux
+
+
+############################### mount everything ###############################
+mkdir ~/rpi_mnt
+sudo mount 2020-02-05-raspbian-buster.img \
+  -o loop,offset=$((532480*512)),rw ~/rpi_mnt
+
+cd ~/rpi_mnt
+sudo su
+mount --bind /dev dev/
+mount --bind /sys sys/
+mount --bind /proc proc/
+mount --bind /dev/pts dev/pts
+exit
+
+# copy QemuUserEmulation binary to the chroot
+sudo cp /usr/bin/qemu-arm-static ~/rpi_mnt/usr/bin
+
+cd ~/rpi_mnt
+# comment out everything in ~/rpi_mnt/etc/ld.so.preload before chroot
+
+################################# chroot ##########################################
+sudo chroot . bin/bash
+
+###### ...
+###### follow instructions for pi-image modification
+###### ...
+
+# uncomment /etc/ld.so.preload and exit chroot
+exit
+cd
+
+#################################### umount all ####################################
+sudo umount ~/rpi_mnt/dev/pts
+sudo umount ~/rpi_mnt/proc
+sudo umount ~/rpi_mnt/sys
+sudo umount ~/rpi_mnt/dev
+sudo umount ~/rpi_mnt
+
