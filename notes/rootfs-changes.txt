@@ -12,6 +12,8 @@ LC_ALL=C LANGUAGE=C LANG=C apt-get remove --purge rsyslog -y
 rm /var/spool
 # create the mount point for tmpfs
 mkdir /var/spool
+# used for USB disks etc. automount point
+mkdir /media/pi
 
 # add ,ro to /boot and / in /etc/fstab
 cat /etc/fstab
@@ -25,6 +27,7 @@ tmpfs        /var/log        tmpfs   nosuid,nodev          0       0
 tmpfs        /var/spool      tmpfs   nosuid,nodev          0       0
 tmpfs        /var/tmp        tmpfs   nosuid,nodev          0       0
 tmpfs        /home/pi        tmpfs   nosuid,nodev          0       0
+tmpfs        /media/pi       tmpfs   nosuid,nodev          0       0
 
 
 
